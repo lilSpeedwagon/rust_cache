@@ -1,6 +1,3 @@
-use std::{io::Read, net::TcpListener};
-use std::io::{prelude::*, BufReader};
-
 pub mod server;
 
 fn main() {

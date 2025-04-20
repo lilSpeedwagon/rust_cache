@@ -1,4 +1,4 @@
-use std::{fmt, mem};
+use std::mem;
 use std::io;
 
 pub trait ReadFromStream {
@@ -15,7 +15,7 @@ impl ReadFromStream for i64 {
         if bytes_count != TYPE_SIZE {
             return Err(Box::new(io::Error::new(io::ErrorKind::InvalidData, "Not enough bytes to read i64")));
         }
-        return Ok(i64::from_le_bytes(buffer));
+        return Ok(i64::from_be_bytes(buffer));
     }
 }
 
@@ -28,7 +28,7 @@ impl ReadFromStream for i32 {
         if bytes_count != TYPE_SIZE {
             return Err(Box::new(io::Error::new(io::ErrorKind::InvalidData, "Not enough bytes to read i32")));
         }
-        return Ok(i32::from_le_bytes(buffer));
+        return Ok(i32::from_be_bytes(buffer));
     }
 }
 
@@ -41,7 +41,7 @@ impl ReadFromStream for i16 {
         if bytes_count != TYPE_SIZE {
             return Err(Box::new(io::Error::new(io::ErrorKind::InvalidData, "Not enough bytes to read i16")));
         }
-        return Ok(i16::from_le_bytes(buffer));
+        return Ok(i16::from_be_bytes(buffer));
     }
 }
 
@@ -55,6 +55,6 @@ impl ReadFromStream for i8 {
         if bytes_count != TYPE_SIZE {
             return Err(Box::new(io::Error::new(io::ErrorKind::InvalidData, "Not enough bytes to read i8")));
         }
-        return Ok(i8::from_le_bytes(buffer));
+        return Ok(i8::from_be_bytes(buffer));
     }
 }

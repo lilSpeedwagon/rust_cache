@@ -1,4 +1,4 @@
-use std::{io::Read, net::TcpListener, net::TcpStream};
+use std::{net::TcpListener, net::TcpStream};
 use std::io::{self, BufReader};
 use std::error::Error;
 
@@ -14,6 +14,18 @@ struct RequestHeader {
     checksum: i32,
     body_size: i32,
     reserved2: i32,
+}
+
+struct RequestOperationHeader {
+    op_code: i8,
+    reserved1: i8,
+    reserved2: i16,
+    body_size: i32,
+}
+
+struct RequestOperation {
+    header: RequestOperationHeader,
+    body: Vec<u8>,
 }
 
 pub struct TcpServer {
@@ -56,6 +68,10 @@ impl TcpServer {
         println!("{}-{}-{}-{}", header.proto_version, header.ops_count, header.checksum, header.body_size);
 
         // Parse commands.
+        for _ in 0..header.ops_count {
+            let operation = self.read_operation(reader)?;
+            println!("{}-{}", operation.header.op_code, operation.header.body_size);
+        }
 
         // Route each command.
 
@@ -64,14 +80,6 @@ impl TcpServer {
     }
 
     fn read_header(&mut self, reader: &mut dyn io::Read) -> Result<RequestHeader, Box<dyn Error>> {
-        const HEADER_SIZE: usize = std::mem::size_of::<RequestHeader>();
-        let mut header_buf: [u8; HEADER_SIZE] = [0; HEADER_SIZE];
-        let size = reader.read(&mut header_buf)?;
-        if size != HEADER_SIZE {
-            println!("header size is {}. expected {}", size, HEADER_SIZE);
-            return Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Invalid request header of size {size}"))));
-        }
-
         let version: i8 = serialize::ReadFromStream::from_stream(reader)?;
         let reserved1: i8 = serialize::ReadFromStream::from_stream(reader)?;
         let ops_count: i16 = serialize::ReadFromStream::from_stream(reader)?;
@@ -80,7 +88,7 @@ impl TcpServer {
         let reserved2: i32 = serialize::ReadFromStream::from_stream(reader)?;
         
         if reserved1 != 0 || reserved2 != 0 {
-            return Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Reserved header parts are expected to be zeroes."))));
+            return Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Reserved header parts are expected to be zeroes. Got {reserved1} and {reserved2}"))));
         }
 
         return Ok(RequestHeader{
@@ -93,4 +101,37 @@ impl TcpServer {
         });
     }
 
+    fn read_operation_header(&mut self, reader: &mut dyn io::Read) -> Result<RequestOperationHeader, Box<dyn Error>> {
+        let op_code: i8 = serialize::ReadFromStream::from_stream(reader)?;
+        let reserved1: i8 = serialize::ReadFromStream::from_stream(reader)?;
+        let reserved2: i16 = serialize::ReadFromStream::from_stream(reader)?;
+        let body_size: i32 = serialize::ReadFromStream::from_stream(reader)?;
+        
+        if reserved1 != 0 || reserved2 != 0 {
+            return Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Reserved header parts are expected to be zeroes. Got {reserved1} and {reserved2}"))));
+        }
+
+        return Ok(RequestOperationHeader{
+            op_code: op_code,
+            reserved1: reserved1,
+            reserved2: reserved2,
+            body_size: body_size,
+        });
+    }
+
+    fn read_operation(&mut self, reader: &mut dyn io::Read) -> Result<RequestOperation, Box<dyn Error>> {
+        let header = self.read_operation_header(reader)?;
+
+        let mut body_buf = vec![0; header.body_size as usize];
+        let size = reader.read(&mut body_buf)?;
+        if size != header.body_size as usize {
+            println!("operation body size is {}. expected {}", size, size);
+            return Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Invalid request operation of size {size}"))));
+        }
+
+        return Ok(RequestOperation{
+            header: header,
+            body: body_buf,
+        });
+    }
 }
