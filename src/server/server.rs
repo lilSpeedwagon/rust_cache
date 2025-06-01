@@ -1,5 +1,5 @@
 use std::{net::TcpListener, net::TcpStream};
-use std::io::{self, BufReader};
+use std::io::{self, BufReader, Write};
 use std::error::Error;
 
 use crate::server::models::{RequestReadable, RequestHeader, RequestOperation};
@@ -24,14 +24,23 @@ impl TcpServer {
             let mut buffered_reader = BufReader::new(&mut stream);
 
             match self.handle(&mut buffered_reader) {
-                Ok(_) => println!("Ok"),
+                Ok(_) => {
+                    println!("Ok");
+                    // Placeholder for actual response.
+                    match stream.write(b"OK") {
+                        Ok(_) => {},
+                        Err(e) => println!("Error writing to stream: {}", e), 
+                    }
+                },
                 Err(err) => {
                     println!("Error: {}", err);
-                    match stream.shutdown(std::net::Shutdown::Both) {
-                        Ok(_) => println!("Connection is closed on error"),
-                        Err(e) => println!("Cannot close the connection: {}", e),
-                    }
-                }
+                    
+                },
+            }
+
+            match stream.shutdown(std::net::Shutdown::Both) {
+                Ok(_) => println!("Connection is closed."),
+                Err(e) => println!("Cannot close the connection: {}", e),
             }
         }
     }

@@ -99,7 +99,7 @@ impl RequestReadable for RequestOperation {
         let mut body_buf = vec![0; header.body_size as usize];
         let size = reader.read(&mut body_buf)?;
         if size != header.body_size as usize {
-            println!("operation body size is {}. expected {}", size, size);
+            println!("operation body size is {}. expected {}", size, header.body_size as usize);
             return Err(Box::new(io::Error::new(
                 io::ErrorKind::Other,
                 format!("Invalid request operation of size {size}")
